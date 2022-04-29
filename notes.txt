@@ -1,0 +1,8 @@
+ETL:
+
+select gt_lat, gt_lon, gt_page_id from geo_tags where gt_globe = "earth" INTO OUTFILE '/var/lib/mysql-files/wikipediat_geotags.csv' FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\n';
+
+Query:
+select lat, lon, id from wikipedia.geo_all where abs(lat - 37) < 1 and abs(lon + 122) < 1;                                                                                                                  
+
+docker run -e GOOGLE_APPLICATION_CREDENTIALS=/tmp/bigquery_viewer.json -v /home/greg/bigquery_viewer.json:/tmp/bigquery_viewer.json --network=host greg_tiles:latest

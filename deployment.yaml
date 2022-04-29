@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wiki-tiles
+  labels:
+    app: wiki-tiles
+spec:
+  selector:
+    matchLabels:
+      app: wiki-tiles
+      tier: web
+  template:
+    metadata:
+      labels:
+        app: wiki-tiles
+        tier: web
+    spec:
+      containers:
+      - name: wiki-tiles
+        image: us.gcr.io/wikimap-347704/greg-tiles:latest
+        ports:
+        - containerPort: 8888
+        resources:
+          requests:
+            cpu: 100m
