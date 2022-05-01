@@ -23,3 +23,10 @@ spec:
         resources:
           requests:
             cpu: 100m
+      - name: article-server
+        image: us.gcr.io/wikimap-347704/greg-article-server:latest
+        ports:
+        - containerPort: 8889
+        resources:
+          requests:
+            cpu: 50m

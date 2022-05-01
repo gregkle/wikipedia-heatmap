@@ -10,9 +10,13 @@
 	
 	<link rel="shortcut icon" type="image/x-icon" href="docs/images/favicon.ico" />
 
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.3.4/dist/leaflet.css" integrity="sha512-puBpdR0798OZvTTbP4A8Ix/l+A4dHDD0DGqYW6RQ+9jxkRFclaxxQb/SJAWZfWAkuyeQUytO7+7N4QKrDh+drA==" crossorigin=""/>
-    <script src="https://unpkg.com/leaflet@1.3.4/dist/leaflet.js" integrity="sha512-nMMmRyTVoLYqjP9hrbed9S+FzjZHW5gY1TWCHA5ckwXZBadntCNs8kEqAWdrb9O7rxbCaA4lKTIWjDXZxflOcA==" crossorigin=""></script>
-    
+	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.8.0/dist/leaflet.css"
+	integrity="sha512-hoalWLoI8r4UszCkZ5kL8vayOGVae1oxXe/2A4AO6J9+580uKHDO3JdHb7NzwwzK5xr/Fs0W40kiNHxM9vyTtQ=="
+	crossorigin=""/>
+	<script src="https://unpkg.com/leaflet@1.8.0/dist/leaflet.js"
+	integrity="sha512-BB3hKbKWOc9Ez/TAwyWxNXeoV9c1v6FIeYiBieIWkpLjauysF18NzgR1MBNBXf8/KABdlkX68nAhlwcDFLGPCQ=="
+	crossorigin=""></script>
+	 
 
 
 	
@@ -24,16 +28,81 @@
 <div id="mapid" style="width: 98%; height: 98%; position:absolute;"></div>
 <script>
 
-	var mymap = L.map('mapid').setView([44.967243, -103.771556], 5);
+	var map = L.map('mapid').setView([44.967243, -103.771556], 5);
+	var markers = {};
 
-	L.tileLayer('http://127.0.0.1:80/tile/{z}/{x}/{y}.png',{//'http://localhost:8080/{z}/{x}/{y}.png', {
+
+	var heatmap = L.tileLayer('http://34.82.43.173:80/tile/{z}/{x}/{y}.png',{//'http://localhost:8080/{z}/{x}/{y}.png', {
 		maxZoom: 15,
 		attribution: 'Wikipedia articles via Wikipedia Contributors',
 		id: '',
-		opacity: 0.2
-	}).addTo(mymap);
+		opacity: 1.0
+	});
+	heatmap.addTo(map);
 	
+	var popup = L.popup();
 
+
+	function onTileLoad(e) {
+		var xhttp = new XMLHttpRequest();
+		var x = e.coords.x;
+		var y = e.coords.y;
+		var z = e.coords.z;
+		if(z<14) { // min zoom for text
+			return;
+		}
+		xhttp.onload = function() {
+			ob = JSON.parse(this.responseText)
+			ob.forEach(element => {
+				lat = element.lat;
+				lon = element.lon;
+				if (map.getZoom() != z) { return;}
+				var marker = L.marker([lat, lon]);
+				marker.bindPopup("<a href='https://en.wikipedia.org/?curid="+element.id+"'>"+element.name+"</a>");
+				marker.bindTooltip(element.name, {permanent: false, className: "my-label", offset: [0, 0] });
+				marker.addTo(map);
+				var key = x+":"+y+":"+z;
+				if(key in markers) {
+					markers[key].push(marker);
+				} else {
+					markers[key] = [marker];
+				}
+			});
+		};
+		xhttp.open("GET", "http://34.82.43.173:81/article?tile=true&x="+x+"&y="+y+"&z="+z, true);
+		xhttp.setRequestHeader("Content-type", "application/json");
+		xhttp.send("");
+	}
+
+	function onMapClick(e) {
+		var xhttp = new XMLHttpRequest();
+		p = popup
+		p.setLatLng(e.latlng)
+		p.setContent("loading...")
+		p.openOn(map);
+		xhttp.onload = function() {
+			if (this.responseText==="null") {
+				content = "No articles"
+			} else {
+				ob = JSON.parse(this.responseText)
+				content = "<a href='https://en.wikipedia.org/?curid="+ob.id+"'>"+ob.name+"</a>"
+			}
+			p.setContent(content)
+
+		};
+		xhttp.open("GET", "http://34.82.43.173:81/article?lat="+e.latlng.lat+"&lon="+e.latlng.lng, true);
+		xhttp.setRequestHeader("Content-type", "application/json");
+		xhttp.send("");
+	}
+
+map.on('click', onMapClick);
+heatmap.on('tileloadstart', onTileLoad);
+heatmap.on('tileunload', function(e) {
+	var key = e.coords.x+":"+e.coords.y+":"+e.coords.z;
+	if(key in markers){
+		markers[key].forEach(marker=>marker.remove());
+	}
+});
 </script>
 
 

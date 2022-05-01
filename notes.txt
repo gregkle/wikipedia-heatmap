@@ -6,3 +6,6 @@ Query:
 select lat, lon, id from wikipedia.geo_all where abs(lat - 37) < 1 and abs(lon + 122) < 1;                                                                                                                  
 
 docker run -e GOOGLE_APPLICATION_CREDENTIALS=/tmp/bigquery_viewer.json -v /home/greg/bigquery_viewer.json:/tmp/bigquery_viewer.json --network=host greg_tiles:latest
+
+
+cat enwiki-20220420-pages-articles-multistream-index.txt | sed 's/:/^/' | sed 's/:/^/' > ^delim_articles.txt

@@ -7,8 +7,8 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: wiki-tiles
-  minReplicas: 6
-  maxReplicas: 24
+  minReplicas: 20
+  maxReplicas: 64
   metrics:
   - type: Resource
     resource:

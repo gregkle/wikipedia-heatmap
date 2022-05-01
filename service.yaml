@@ -9,5 +9,10 @@ spec:
     - protocol: TCP
       port: 80
       targetPort: 8888
+      name: tilehttp
+    - protocol: TCP
+      port: 81
+      targetPort: 8889
+      name: articlehttp
   type: LoadBalancer
 

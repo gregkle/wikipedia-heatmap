@@ -20,12 +20,12 @@ def num2deg(xtile, ytile, zoom):
   lat_rad = math.atan(math.sinh(math.pi * (1 - 2 * ytile / n)))
   lat_deg = math.degrees(lat_rad)
   return (lat_deg, lon_deg)
-  
+
 def deg2num(lat_deg, lon_deg, zoom):
   lat_rad = math.radians(lat_deg)
   n = 2.0 ** zoom
-  xtile = int((lon_deg + 180.0) / 360.0 * n)
-  ytile = int((1.0 - math.asinh(math.tan(lat_rad)) / math.pi) / 2.0 * n)
+  xtile = ((lon_deg + 180.0) / 360.0 * n)
+  ytile = ((1.0 - math.asinh(math.tan(lat_rad)) / math.pi) / 2.0 * n)
   return (xtile, ytile)
 
 def get_all_articles(xtile, ytile, zoom):
@@ -49,19 +49,17 @@ def render_tile(zoom, x_tile, y_tile):
     tile = np.zeros((256, 256), dtype='double')
     total_articles = 0
     for article in articles:
-    	lat = article[0]
-    	lon = article[1]
-    	
-    	#compute offsets
-    	o_lat = (nw_lat - lat) / lat_range * 256.0
-    	o_lon = (lon - nw_lon) / lon_range * 256.0
-    	
-    	#print(f"{o_lat}, {o_lon}")
-    	
-    	o_lat = int(max(0, min(256, o_lat)))
-    	o_lon = int(max(0, min(256, o_lon)))
-    	tile[int(o_lat)][int(o_lon)] += 1
-    	total_articles += 1
+        lat = article[0]
+        lon = article[1]
+
+        (tile_x, tile_y) = deg2num(lat, lon, zoom)
+        tile_x = tile_x - int(tile_x)
+        tile_y = tile_y - int(tile_y)
+        tile_x *= 256
+        tile_y *= 256
+
+        tile[int(tile_y)][int(tile_x)] += 1
+        total_articles += 1
     print(f"{total_articles} in tile")
     tile += 0.01
     tile = np.log(tile)
@@ -84,23 +82,25 @@ def file_name(z, x, y):
 class MainHandler(tornado.web.RequestHandler):
     
     def get(self, args):
+        should_cache = True
         #self.write(f"Hello, world {self.request.uri}  - {args}")
         r = re.match("(\d+)/(\d+)/(\d+)", args)
         (zoom, x, y) = (int(r.group(1)), int(r.group(2)), int(r.group(3)))
         fname = file_name(zoom, x, y)
         
         storage_client = storage.Client()
-        bucket_name = 'wiki-tile-cache'
+        bucket_name = 'wiki-tile-cache-reproject'
         bucket = storage_client.bucket(bucket_name)
         blob = storage.Blob(bucket=bucket, name=fname)
-        if blob.exists(storage_client):
+        if blob.exists(storage_client) and should_cache:
            # cache hit
            blob.download_to_filename(fname)
            print("cache hit")
         else:
            print("cache miss")
            fname = render_tile(zoom, x, y)
-           blob.upload_from_filename(fname)
+           if should_cache:
+            blob.upload_from_filename(fname)
         with open(fname, "rb") as source_file:
             self.write(source_file.read())
         self.set_header("Content-type",  "image/png")
